@@ -10,8 +10,9 @@ add_compile_options(-std=c++17)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
-  # roslib
+  roslib
 )
+find_package(yaml-cpp REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -150,7 +151,7 @@ add_executable(ballhandling src/ballhandling.cpp)
 # add_dependencies(comm_stm ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(comm_multicast ${catkin_LIBRARIES} shared_mem)
+target_link_libraries(comm_multicast ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES} shared_mem)
 target_link_libraries(comm_motor ${catkin_LIBRARIES})
 target_link_libraries(comm_stm ${catkin_LIBRARIES} shared_mem)
 target_link_libraries(ballhandling ${catkin_LIBRARIES})
