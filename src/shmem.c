@@ -10,7 +10,7 @@
  *
  */
 
-#include "comm/shared_mem.h"
+#include "comm/shmem.h"
 
 /* Function: shmOpen
  *
@@ -375,7 +375,17 @@ int getSemVal(sem_t *sem)
     return sem_value;
 }
 
-void tes()
+int8_t init_shared_mem(semShm_t *shm, int8_t key, __uint16_t size)
 {
-    printf("asd\n");
+    shm->key = key;
+    if ((shm->segptr = shmOpen(shm->key, size, &(shm->shmid), &(shm->sem), &(shm->createdSegment))) == (void *)-1)
+    {
+        printf("vis_mu.c:%d | FATAL ERROR, failed to open shared memory segment, exiting.\n Use cmnds ipcs and ipcrm to remove shared memory segment with permissions 666.\nOr reboot.\n", __LINE__);
+        return -1;
+        exit(1);
+    }
+    else
+    {
+        sem_post(shm->sem);
+    }
 }

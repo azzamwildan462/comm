@@ -104,7 +104,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
-#  LIBRARIES comm
+ LIBRARIES comm
 #  CATKIN_DEPENDS roscpp std_msgs
 #  DEPENDS system_lib
 )
@@ -123,9 +123,8 @@ include
 # SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BASE_DIR}/lib )
 
 ## Declare a C++ library
-add_library(shared_mem src/shared_mem.c)
+add_library(shared_mem src/shmem.c)
 target_link_libraries(shared_mem ${catkin_LIBRARIES})
-
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -136,8 +135,8 @@ target_link_libraries(shared_mem ${catkin_LIBRARIES})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(comm_multicast src/comm_multicast.cpp)
-add_executable(comm_motor src/comm_motor.cpp)
-add_executable(comm_stm src/comm_stm.cpp src/shared_mem.c)
+add_executable(comm_motor src/comm_motor.cpp src/rs232.c)
+add_executable(comm_stm src/comm_stm.cpp )
 add_executable(ballhandling src/ballhandling.cpp)
 
 ## Rename C++ executable without prefix
@@ -148,10 +147,10 @@ add_executable(ballhandling src/ballhandling.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(comm_stm ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(comm_stm ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(comm_multicast ${catkin_LIBRARIES})
+target_link_libraries(comm_multicast ${catkin_LIBRARIES} shared_mem)
 target_link_libraries(comm_motor ${catkin_LIBRARIES})
 target_link_libraries(comm_stm ${catkin_LIBRARIES} shared_mem)
 target_link_libraries(ballhandling ${catkin_LIBRARIES})

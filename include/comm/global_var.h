@@ -2,6 +2,9 @@
 #define TYPES_H
 
 #include <bits/types.h>
+#include <signal.h>
+#include <unistd.h>
+#include "comm/shmem.h"
 
 typedef struct shdata_robot_tag
 {
@@ -30,5 +33,11 @@ typedef struct stm2pc_tag
     uint8_t buttons;
 
 } stm2pc_t;
+
+// Shared Memory Flags
+int8_t SHM_STM2PC_KEY = 0x01;
+int8_t SHM_PC2STM_KEY = 0x02;
+int8_t SHM_MC_IN_KEY = 0x04;
+int8_t SHM_MC_OUT_KEY = 0x10;
 
 #endif
