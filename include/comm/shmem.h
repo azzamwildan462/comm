@@ -49,6 +49,7 @@ extern "C"
     int getSemVal(sem_t *sem);
 
     int8_t init_shared_mem(semShm_t *shm, int8_t key, __uint16_t size);
+    void *shm_get_mem_ptr(int *shmid);
 
 #ifdef __cplusplus
 } /* extern "C" */

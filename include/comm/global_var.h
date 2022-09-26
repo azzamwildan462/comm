@@ -31,6 +31,7 @@ typedef struct pc2stm_tag
 typedef struct stm2pc_tag
 {
     uint8_t buttons;
+    
 
 } stm2pc_t;
 

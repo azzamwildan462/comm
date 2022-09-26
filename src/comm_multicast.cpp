@@ -207,64 +207,64 @@ void signal_handler(int sig)
     if (shm_mc_out.createdSegment == 1)
         if (shmRemove(shm_mc_out.shmid, shm_mc_out.segptr) == -1)
             printf("Unable to detach memory\n");
-    printf("Remove success\n");
+    printf("[comm_multicast] Remove shared memory success\n");
     closeSocket();
     ros::shutdown();
 }
 
 void recv_cllbck(const ros::TimerEvent &)
 {
-    char recv_buffer[128] = "its";
-    int nrecv = recvfrom(recv_socket->socketID, recv_buffer, 128, 0, &src_addr, &addr_len);
+    // char recv_buffer[128] = "its";
+    // int nrecv = recvfrom(recv_socket->socketID, recv_buffer, 128, 0, &src_addr, &addr_len);
 
-    if (nrecv > 0)
-    {
-        uint8_t identifier;
-        memcpy(&identifier, recv_buffer + 3, 1);
-        identifier -= '0';
+    // if (nrecv > 0)
+    // {
+    //     uint8_t identifier;
+    //     memcpy(&identifier, recv_buffer + 3, 1);
+    //     identifier -= '0';
 
-        // Memory block = BS -> rbt1 -> rbt2 -> rbt3 -> rbt4 -> rbt5
-        switch (identifier)
-        {
-        case 0:
-            memcpy(shm_mc_in_data, recv_buffer, 43);
-            break;
-        case 1:
-            memcpy(shm_mc_in_data, recv_buffer + 43, 10);
-            break;
-        case 2:
-            memcpy(shm_mc_in_data, recv_buffer + 53, 10);
-            break;
-        case 3:
-            memcpy(shm_mc_in_data, recv_buffer + 63, 10);
-            break;
-        case 4:
-            memcpy(shm_mc_in_data, recv_buffer + 73, 10);
-            break;
-        case 5:
-            memcpy(shm_mc_in_data, recv_buffer + 83, 10);
-            break;
-        }
-    }
+    //     // Memory block = BS -> rbt1 -> rbt2 -> rbt3 -> rbt4 -> rbt5
+    //     switch (identifier)
+    //     {
+    //     case 0:
+    //         memcpy(shm_mc_in_data, recv_buffer, 43);
+    //         break;
+    //     case 1:
+    //         memcpy(shm_mc_in_data, recv_buffer + 43, 10);
+    //         break;
+    //     case 2:
+    //         memcpy(shm_mc_in_data, recv_buffer + 53, 10);
+    //         break;
+    //     case 3:
+    //         memcpy(shm_mc_in_data, recv_buffer + 63, 10);
+    //         break;
+    //     case 4:
+    //         memcpy(shm_mc_in_data, recv_buffer + 73, 10);
+    //         break;
+    //     case 5:
+    //         memcpy(shm_mc_in_data, recv_buffer + 83, 10);
+    //         break;
+    //     }
+    // }
 }
 
 void send_cllbck(const ros::TimerEvent &)
 {
-    // uint16_t coba;
-    // uint16_t coba2;
-    // uint16_t coba3;
-    // shmRead(shm_mc_in_data, 6, shm_mc_in.shmid, shm_mc_in.segptr, shm_mc_in.sem, 1, 0);
-    // memcpy(&coba, shm_mc_in_data, 2);
-    // memcpy(&coba2, shm_mc_in_data + 2, 2);
-    // memcpy(&coba3, shm_mc_in_data + 4, 2);
-    // printf("read: %d %d %d\n", coba, coba2, coba3);
+    uint16_t coba;
+    uint16_t coba2;
+    uint16_t coba3;
+    shmRead(shm_mc_in_data, 6, shm_mc_in.shmid, shm_mc_in.segptr, shm_mc_in.sem, 0, 0);
+    memcpy(&coba, shm_mc_in_data, 2);
+    memcpy(&coba2, shm_mc_in_data + 2, 2);
+    memcpy(&coba3, shm_mc_in_data + 4, 2);
+    printf("exec2 read: clk %ld | data %d %d %d\n", ros::Time::now().toNSec(), coba, coba2, coba3);
 }
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "comm_multicast");
     ros::NodeHandle NH;
-    ros::MultiThreadedSpinner spinner(0);
+    ros::MultiThreadedSpinner spinner(2);
 
     signal(SIGINT, signal_handler);
     loadConfig();
@@ -274,11 +274,11 @@ int main(int argc, char **argv)
     if (init_shared_mem(&shm_mc_out, SHM_MC_OUT_KEY, 64) == -1)
         ros::shutdown();
 
-    if (openSocket() == -1)
-    {
-        PERR("openMulticastSocket");
-        return -1;
-    }
+    // if (openSocket() == -1)
+    // {
+    //     PERR("openMulticastSocket");
+    //     return -1;
+    // }
 
     recv_timer = NH.createTimer(ros::Duration(0.1), recv_cllbck);
     send_timer = NH.createTimer(ros::Duration(0.05), send_cllbck);
