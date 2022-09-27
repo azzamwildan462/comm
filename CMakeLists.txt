@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   roslib
+  message_generation
+  message_runtime
 )
 find_package(yaml-cpp REQUIRED)
 
@@ -48,11 +50,11 @@ find_package(yaml-cpp REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  mc_out.msg
+  mc_in.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -69,10 +71,10 @@ find_package(yaml-cpp REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -121,11 +123,26 @@ include
   ${catkin_INCLUDE_DIRS}
 )
 
+
+set (CMAKE_CXX_FLAGS "${REDISCPP_FLAGS}")
+find_package(Boost REQUIRED COMPONENTS thread system iostreams)
+include_directories(${Boost_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS})
+set (LIB_BOOST
+    ${LIBRARIES}
+    ${Boost_LIBRARIES}
+)
+add_library(lib_redis STATIC IMPORTED)
+set_target_properties(lib_redis PROPERTIES
+IMPORTED_LOCATION /usr/local/lib/libredis-cpp.a
+INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
+)
+
 # SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BASE_DIR}/lib )
 
 ## Declare a C++ library
-add_library(shared_mem src/shmem.c)
-target_link_libraries(shared_mem ${catkin_LIBRARIES})
+# add_library(shared_mem src/shmem.c)
+# target_link_libraries(shared_mem ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -151,9 +168,9 @@ add_executable(ballhandling src/ballhandling.cpp)
 # add_dependencies(comm_stm ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(comm_multicast ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES} shared_mem)
+target_link_libraries(comm_multicast ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES} ${LIB_BOOST} lib_redis)
 target_link_libraries(comm_motor ${catkin_LIBRARIES})
-target_link_libraries(comm_stm ${catkin_LIBRARIES} shared_mem)
+target_link_libraries(comm_stm ${catkin_LIBRARIES} )
 target_link_libraries(ballhandling ${catkin_LIBRARIES})
 
 #############

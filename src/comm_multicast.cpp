@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 #include "comm/global_var.h"
-#include "comm/shmem.h"
+#include "comm/mc_in.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -26,6 +26,14 @@
 #include <linux/if_ether.h>
 
 #include "yaml-cpp/yaml.h"
+#include <chrono>
+
+#define USE_KEYDB
+
+#ifdef USE_KEYDB
+#include <redis-cpp/stream.h>
+#include <redis-cpp/execute.h>
+#endif
 
 #define PERR(txt, par...) \
     printf("ERROR: (%s / %s): " txt "\n", __FILE__, __FUNCTION__, ##par)
@@ -55,14 +63,31 @@ socklen_t addr_len = sizeof(src_addr);
 // Config
 config nw_config;
 
-// Shared memory for Incoming / Outcoming multicast data
-semShm_t shm_mc_in;
-semShm_t shm_mc_out;
-char shm_mc_in_data[64];
-char shm_mc_out_data[64];
-
 ros::Timer recv_timer;
 ros::Timer send_timer;
+
+ros::Publisher pub_bs2pc;
+ros::Subscriber sub_pc2mc;
+
+// PC2MC_out datas
+int16_t pos_x;
+int16_t pos_y;
+int16_t theta;
+int8_t ball_status;
+int16_t ball_x;
+int16_t ball_y;
+uint16_t robot_cond;
+int8_t pass_target;
+
+// UDP data
+char send_buf[64];
+uint8_t actual_data_size;
+char its[4] = "its";
+
+// KeyDB
+auto keydb_put_stream = rediscpp::make_stream("127.0.0.1", "6969");
+uint8_t delay_tolerance = 10;
+int64_t robot_epoch[6];
 
 int if_NameToIndex(char *ifname, char *address)
 {
@@ -156,8 +181,8 @@ int openSocket()
         return -1;
     }
 
-    /* Disable reception of our own multicast */
-    opt = 0; // default 0
+    /* 0 for Disable reception of our own multicast */
+    opt = 1;
     if ((setsockopt(multiSocket.socketID, IPPROTO_IP, IP_MULTICAST_LOOP, &opt, sizeof(opt))) == -1)
     {
         PERRNO("setsockopt");
@@ -199,65 +224,136 @@ void loadConfig()
     printf("port: %d\n", nw_config.port);
 }
 
-void signal_handler(int sig)
+void updateRobotsStatus()
 {
-    if (shm_mc_in.createdSegment == 1)
-        if (shmRemove(shm_mc_in.shmid, shm_mc_in.segptr) == -1)
-            printf("Unable to detach memory\n");
-    if (shm_mc_out.createdSegment == 1)
-        if (shmRemove(shm_mc_out.shmid, shm_mc_out.segptr) == -1)
-            printf("Unable to detach memory\n");
-    printf("[comm_multicast] Remove shared memory success\n");
-    closeSocket();
-    ros::shutdown();
+    int64_t epoch_now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    uint8_t status_valid = 0;
+    char s_valid_key[16] = "data_valid";
+    for (uint8_t i = 1; i <= 5; i++)
+    {
+        uint8_t id = i + '0';
+        memcpy(s_valid_key + 10, &id, 1);
+        status_valid = (abs(epoch_now - robot_epoch[i]) <= delay_tolerance);
+        auto const put_value = std::to_string(status_valid);
+        rediscpp::execute_no_flush(*keydb_put_stream, "set", s_valid_key, put_value);
+        // printf("%s: %d - %d -> %d (%d)\n", s_valid_key, epoch_now, robot_epoch[i], abs(epoch_now - robot_epoch[i]), status_valid);
+    }
+
+    std::flush(*keydb_put_stream);
+}
+
+void putRobotsData(char data[])
+{
+    uint16_t val_buffer_2B;
+    uint8_t val_buffer_1B;
+    char put_keys[9][12] = {"pos_x", "pos_y", "theta", "ball_stat", "ball_x", "ball_y", "r_cond", "pass_target"};
+    uint8_t put_keys_size[9] = {6, 6, 6, 10, 7, 7, 7, 12};
+    uint8_t val_pos[9] = {12, 14, 16, 18, 19, 21, 23, 25};
+    uint8_t val_size[9] = {2, 2, 2, 1, 2, 2, 2, 1};
+
+    // Update robots epoch
+    int64_t recv_epoch;
+    uint8_t recv_from;
+    memcpy(&recv_from, data, 1);
+    memcpy(&recv_epoch, data + 1, 8);
+    recv_from -= '0';
+    robot_epoch[recv_from] = recv_epoch;
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        bzero(&val_buffer_2B, 2);
+        memcpy(&val_buffer_2B, data + val_pos[i], val_size[i]);
+        memcpy(put_keys[i] + put_keys_size[i] - 1, data, 1);
+        auto const put_value = std::to_string(val_buffer_2B);
+        printf("%s: %s\n", put_keys[i], put_value.c_str());
+        rediscpp::execute_no_flush(*keydb_put_stream, "set", put_keys[i], put_value);
+    }
+
+    std::flush(*keydb_put_stream);
+}
+
+void cllbck_pc2mc()
+{
+    // Data sintetis buat nyoba
+    pos_x = 123;
+    pos_y = 1000;
+    theta = 69;
+    ball_status = 1;
+    ball_x = 300;
+    ball_y = 700;
+    robot_cond = 10;
+    pass_target = 0;
+
+    int64_t epoch = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    memcpy(send_buf, its, 3);
+    memcpy(send_buf + 3, nw_config.identifier, 1);
+    memcpy(send_buf + 4, &epoch, 8);
+    memcpy(send_buf + 12, &pos_x, 2);
+    memcpy(send_buf + 14, &pos_y, 2);
+    memcpy(send_buf + 16, &theta, 2);
+    memcpy(send_buf + 18, &ball_status, 1);
+    memcpy(send_buf + 19, &ball_x, 2);
+    memcpy(send_buf + 21, &ball_y, 2);
+    memcpy(send_buf + 23, &robot_cond, 2);
+    memcpy(send_buf + 25, &pass_target, 1);
+
+    actual_data_size = 26;
 }
 
 void recv_cllbck(const ros::TimerEvent &)
 {
-    // char recv_buffer[128] = "its";
-    // int nrecv = recvfrom(recv_socket->socketID, recv_buffer, 128, 0, &src_addr, &addr_len);
+    char recv_buf[64];
+    uint8_t nrecv = recvfrom(recv_socket->socketID, recv_buf, 64, MSG_DONTWAIT, &src_addr, &addr_len);
+    if (nrecv > 0 && (recv_buf[3] >= '0' && recv_buf[3] <= '5') && recv_buf[0] == 'i')
+    {
+        uint8_t identifier = recv_buf[3] - '0';
 
-    // if (nrecv > 0)
-    // {
-    //     uint8_t identifier;
-    //     memcpy(&identifier, recv_buffer + 3, 1);
-    //     identifier -= '0';
+        // Recv from Basestation
+        if (identifier == 0)
+        {
+            comm::mc_in msg_mc_to_pc;
+            printf("BS: %s\n", recv_buf);
+            memcpy(&msg_mc_to_pc.base, recv_buf + 4, 1);
+            memcpy(&msg_mc_to_pc.command, recv_buf + 5, 1);
+            memcpy(&msg_mc_to_pc.style, recv_buf + 6, 1);
+            memcpy(&msg_mc_to_pc.ball_x_field, recv_buf + 7, 2);
+            memcpy(&msg_mc_to_pc.ball_y_field, recv_buf + 9, 2);
+            memcpy(&msg_mc_to_pc.manual_x, recv_buf + 11, 2);
+            memcpy(&msg_mc_to_pc.manual_y, recv_buf + 13, 2);
+            memcpy(&msg_mc_to_pc.manual_th, recv_buf + 15, 2);
+            memcpy(&msg_mc_to_pc.offset_x, recv_buf + 17, 2);
+            memcpy(&msg_mc_to_pc.offset_y, recv_buf + 19, 2);
+            memcpy(&msg_mc_to_pc.offset_th, recv_buf + 21, 2);
+            memcpy(&msg_mc_to_pc.data_mux1, recv_buf + 23, 2);
+            memcpy(&msg_mc_to_pc.data_mux2, recv_buf + 25, 2);
+            memcpy(&msg_mc_to_pc.mux_control, recv_buf + 27, 2);
+            memcpy(&msg_mc_to_pc.trans_vel_trim, recv_buf + 29 + atoi(nw_config.identifier) - 1, 1);
+            memcpy(&msg_mc_to_pc.rotary_vel_trim, recv_buf + 34 + atoi(nw_config.identifier) - 1, 1);
+            memcpy(&msg_mc_to_pc.kick_power_trim, recv_buf + 39 + atoi(nw_config.identifier) - 1, 1);
 
-    //     // Memory block = BS -> rbt1 -> rbt2 -> rbt3 -> rbt4 -> rbt5
-    //     switch (identifier)
-    //     {
-    //     case 0:
-    //         memcpy(shm_mc_in_data, recv_buffer, 43);
-    //         break;
-    //     case 1:
-    //         memcpy(shm_mc_in_data, recv_buffer + 43, 10);
-    //         break;
-    //     case 2:
-    //         memcpy(shm_mc_in_data, recv_buffer + 53, 10);
-    //         break;
-    //     case 3:
-    //         memcpy(shm_mc_in_data, recv_buffer + 63, 10);
-    //         break;
-    //     case 4:
-    //         memcpy(shm_mc_in_data, recv_buffer + 73, 10);
-    //         break;
-    //     case 5:
-    //         memcpy(shm_mc_in_data, recv_buffer + 83, 10);
-    //         break;
-    //     }
-    // }
+            pub_bs2pc.publish(msg_mc_to_pc);
+        }
+        else
+        {
+#ifdef USE_KEYDB
+            // putRobotsData(recv_buf);
+#else
+
+#endif
+        }
+    }
 }
 
 void send_cllbck(const ros::TimerEvent &)
 {
-    uint16_t coba;
-    uint16_t coba2;
-    uint16_t coba3;
-    shmRead(shm_mc_in_data, 6, shm_mc_in.shmid, shm_mc_in.segptr, shm_mc_in.sem, 0, 0);
-    memcpy(&coba, shm_mc_in_data, 2);
-    memcpy(&coba2, shm_mc_in_data + 2, 2);
-    memcpy(&coba3, shm_mc_in_data + 4, 2);
-    printf("exec2 read: clk %ld | data %d %d %d\n", ros::Time::now().toNSec(), coba, coba2, coba3);
+    cllbck_pc2mc();
+    uint8_t nsent = sendto(multiSocket.socketID, send_buf, actual_data_size, 0, (struct sockaddr *)&multiSocket.destAddress, sizeof(struct sockaddr));
+    if (nsent == actual_data_size)
+    {
+        // printf("send: %s | size %d\n", send_buf, actual_data_size);
+    }
+    updateRobotsStatus();
 }
 
 int main(int argc, char **argv)
@@ -266,21 +362,21 @@ int main(int argc, char **argv)
     ros::NodeHandle NH;
     ros::MultiThreadedSpinner spinner(2);
 
-    signal(SIGINT, signal_handler);
     loadConfig();
 
-    if (init_shared_mem(&shm_mc_in, SHM_STM2PC_KEY, 64) == -1)
-        ros::shutdown();
-    if (init_shared_mem(&shm_mc_out, SHM_MC_OUT_KEY, 64) == -1)
-        ros::shutdown();
+    if (openSocket() == -1)
+    {
+        PERR("openMulticastSocket");
+        return -1;
+    }
 
-    // if (openSocket() == -1)
-    // {
-    //     PERR("openMulticastSocket");
-    //     return -1;
-    // }
+    recv_socket = &multiSocket;
 
-    recv_timer = NH.createTimer(ros::Duration(0.1), recv_cllbck);
+    send_buf[0] = '9'; // Dummy data, indicates that this node doesn't get a valid data from robot
+
+    pub_bs2pc = NH.advertise<comm::mc_in>("bs2pc", 4);
+
+    recv_timer = NH.createTimer(ros::Duration(0.01), recv_cllbck);
     send_timer = NH.createTimer(ros::Duration(0.05), send_cllbck);
 
     spinner.spin();
