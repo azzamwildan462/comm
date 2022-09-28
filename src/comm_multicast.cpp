@@ -305,7 +305,7 @@ void recv_cllbck(const ros::TimerEvent &)
 {
     char recv_buf[64];
     uint8_t nrecv = recvfrom(recv_socket->socketID, recv_buf, 64, MSG_DONTWAIT, &src_addr, &addr_len);
-    if (nrecv > 0 && (recv_buf[3] >= '0' && recv_buf[3] <= '5') && recv_buf[0] == 'i')
+    if (nrecv < 255 && (recv_buf[3] >= '0' && recv_buf[3] <= '5') && recv_buf[0] == 'i')
     {
         uint8_t identifier = recv_buf[3] - '0';
 
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "comm_multicast");
     ros::NodeHandle NH;
-    ros::MultiThreadedSpinner spinner(2);
+    ros::MultiThreadedSpinner spinner(3);
 
     loadConfig();
 

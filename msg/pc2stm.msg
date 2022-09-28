@@ -1,0 +1,8 @@
+int16 odom_offset_x
+int16 odom_offset_y
+int16 odom_offset_th
+uint8 kicker_mode
+uint8 kicker_power
+uint16 kicker_position
+uint8 buzzer_cnt
+uint8 buzzer_time

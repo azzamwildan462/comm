@@ -54,6 +54,8 @@ add_message_files(
   FILES
   mc_out.msg
   mc_in.msg
+  pc2stm.msg
+  stm2pc.msg
 )
 
 ## Generate services in the 'srv' folder
