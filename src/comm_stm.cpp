@@ -67,6 +67,15 @@ void recv_cllbck(const ros::TimerEvent &)
         memcpy(&msg_stm2pc.gp_sensors, recv_buffer + 10, 2);
 
         pub_stm2pc.publish(msg_stm2pc);
+
+        // Data lama
+        // memcpy(&pos_x_buffer, serial_rx + 3, 4);
+        // memcpy(&pos_y_buffer, serial_rx + 7, 4);
+        // memcpy(&theta_buffer, serial_rx + 11, 4);
+        // memcpy(&sensor_garis, serial_rx + 15, 1);
+        // memcpy(&sensor_bola, serial_rx + 16, 2);
+        // memcpy(&tombol, serial_rx + 18, 1);
+        // memcpy(&stm_epoch, serial_rx + 19, 4);
     }
 }
 void send_cllbck(const ros::TimerEvent &)

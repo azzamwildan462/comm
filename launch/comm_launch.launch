@@ -1,6 +1,8 @@
 <launch>
     <!-- <node name="comm_stm" pkg="comm" type="comm_stm" output="screen" respawn="true" /> -->
-    <!-- <node name="comm_multicast" pkg="comm" type="comm_multicast" output="screen" respawn="true" /> -->
-    <node name="comm_motor" pkg="comm" type="comm_motor" output="screen" respawn="true" />
+    <node name="comm_multicast" pkg="comm" type="comm_multicast" output="screen" respawn="true" />
+    <!-- <node name="comm_motor" pkg="comm" type="comm_motor" output="screen" respawn="true" /> -->
     <!-- <node name="ballhandling" pkg="comm" type="ballhandling" output="screen" respawn="true" /> -->
+    <node name="decision_maker" pkg="master" type="decision_maker" output="screen" respawn="true" />
+
 </launch>

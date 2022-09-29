@@ -89,6 +89,13 @@ auto keydb_put_stream = rediscpp::make_stream("127.0.0.1", "6969");
 uint8_t delay_tolerance = 10;
 int64_t robot_epoch[6];
 
+// Titip
+// redis-cli -p 6969 SET data_valid1 0
+// redis-cli -p 6969 SET data_valid2 0
+// redis-cli -p 6969 SET data_valid3 0
+// redis-cli -p 6969 SET data_valid4 0
+// redis-cli -p 6969 SET data_valid5 0
+
 int if_NameToIndex(char *ifname, char *address)
 {
     int fd;
@@ -205,6 +212,7 @@ void closeSocket()
 
 void loadConfig()
 {
+    // printf("Loading configuration..\n");
     char *robot_num = getenv("ROBOT");
     char config_file[100];
     std::string current_dir = ros::package::getPath("comm");
