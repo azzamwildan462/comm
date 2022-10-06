@@ -21,10 +21,10 @@ int main(int argc, char **argv)
     myaddr.sin_port = htons(RECEIVE_PORT);
     myaddr.sin_addr.s_addr = INADDR_ANY;
 
-    // Set STM addr
+    // Set STM addr conf
     bzero(&dst_addr, sizeof(struct sockaddr_in));
     dst_addr.sin_family = AF_INET;
-    dst_addr.sin_port = htons(RECEIVE_PORT);
+    dst_addr.sin_port = htons(SEND_PORT);
     dst_addr.sin_addr.s_addr = inet_addr("169.254.183.100");
 
     // Bind for recv data from STM
@@ -61,7 +61,7 @@ void CllbckPc2Stm()
     buzzer_time = 10;
 }
 
-void CllbckRecv(const ros::TimerEvent &)
+void CllbckRecv(const ros::TimerEvent &event)
 {
     // UDP recv
     uint8_t recvlen = recvfrom(fd, recv_buffer, 64, MSG_DONTWAIT, (struct sockaddr *)&stmaddr, &addr_len) + 1;
@@ -89,39 +89,24 @@ void CllbckRecv(const ros::TimerEvent &)
 void CllbckSend(const ros::TimerEvent &event)
 {
     CllbckPc2Stm();
-    //masih eror
+    // masih eror
     //---Robot Velocity
     //=================
     memcpy(send_buffer + 3, &velocity_robot, 3);
     //---Robot Position
     //=================
-    // memcpy(send_buffer + 6, &odom_offset[0], 4);
-    // memcpy(send_buffer + 10, &odom_offset[1], 4);
-    // memcpy(send_buffer + 14, &odom_offset[2], 4);
+    memcpy(send_buffer + 6, &odom_offset[0], 4);
+    memcpy(send_buffer + 10, &odom_offset[1], 4);
+    memcpy(send_buffer + 14, &odom_offset[2], 4);
     // //---Kicker
     // //=========
-    // memcpy(send_buffer + 18, &kicker_mode, 1);
-    // memcpy(send_buffer + 19, &kicker_power, 2);
-    // memcpy(send_buffer + 21, &buzzer_cnt, 1);
-    // memcpy(send_buffer + 22, &buzzer_time, 1);
-    // memcpy(send_buffer + 23, &left_dribble_speed, 2);
-    // memcpy(send_buffer + 25, &right_dribble_speed, 2);
-    // memcpy(send_buffer + 27, &kicker_position, 2);
-    // memcpy(send_buffer + 3, &odom_offset[0], 2);
-    // memcpy(send_buffer + 5, &odom_offset[1], 2);
-    // memcpy(send_buffer + 7, &odom_offset[2], 2);
-    // memcpy(send_buffer + 9, &kicker_mode, 1);
-    // memcpy(send_buffer + 10, &kicker_power, 1);
-    // memcpy(send_buffer + 11, &kicker_position, 2);
-    // memcpy(send_buffer + 13, &buzzer_cnt, 1);
-    // memcpy(send_buffer + 14, &buzzer_time, 1);
-
-    int8_t cekkkk;
-    memcpy(&cekkkk, send_buffer + 4, 1);
-
-    printf("cek: %d \n", cekkkk);
-
-    
+    memcpy(send_buffer + 18, &kicker_mode, 1);
+    memcpy(send_buffer + 19, &kicker_power, 2);
+    memcpy(send_buffer + 21, &buzzer_cnt, 1);
+    memcpy(send_buffer + 22, &buzzer_time, 1);
+    memcpy(send_buffer + 23, &left_dribble_speed, 2);
+    memcpy(send_buffer + 25, &right_dribble_speed, 2);
+    memcpy(send_buffer + 27, &kicker_position, 2);
 
     // UDP send
     sendto(fd, (void *)send_buffer, sizeof(send_buffer), 0, (struct sockaddr *)&dst_addr, dst_len);
@@ -130,8 +115,8 @@ void CllbckSend(const ros::TimerEvent &event)
 
 void CllbckVelMotor(const geometry_msgs::TwistConstPtr &msg)
 {
-//     printf("Velocity robot: %d %d %d\n", (int)(msg->linear.x), (int)(msg->linear.y), (int)(msg->angular.z));
-//     velocity_robot[0] = (int)(msg->linear.x);
-//     velocity_robot[1] = (int)(msg->linear.y);
-//     velocity_robot[2] = (int)(msg->angular.z);
+    //     printf("Velocity robot: %d %d %d\n", (int)(msg->linear.x), (int)(msg->linear.y), (int)(msg->angular.z));
+    //     velocity_robot[0] = (int)(msg->linear.x);
+    //     velocity_robot[1] = (int)(msg->linear.y);
+    //     velocity_robot[2] = (int)(msg->angular.z);
 }

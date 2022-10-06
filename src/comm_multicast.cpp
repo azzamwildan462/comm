@@ -85,7 +85,9 @@ uint8_t actual_data_size;
 char its[4] = "its";
 
 // KeyDB
+#ifdef USE_KEYDB
 auto keydb_put_stream = rediscpp::make_stream("127.0.0.1", "6969");
+#endif
 uint8_t delay_tolerance = 10;
 int64_t robot_epoch[6];
 

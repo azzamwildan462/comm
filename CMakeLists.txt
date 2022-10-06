@@ -155,6 +155,7 @@ INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(comm_multicast src/comm_multicast.cpp)
+add_executable(comm_unicast src/comm_unicast.cpp)
 add_executable(comm_motor src/comm_motor.cpp src/rs232.c)
 add_executable(comm_stm src/comm_stm.cpp )
 add_executable(ballhandling src/ballhandling.cpp)
@@ -171,6 +172,7 @@ add_executable(ballhandling src/ballhandling.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(comm_multicast ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES} ${LIB_BOOST} lib_redis)
+target_link_libraries(comm_unicast ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES} ${LIB_BOOST} lib_redis)
 target_link_libraries(comm_motor ${catkin_LIBRARIES})
 target_link_libraries(comm_stm ${catkin_LIBRARIES} )
 target_link_libraries(ballhandling ${catkin_LIBRARIES})
