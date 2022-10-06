@@ -128,13 +128,6 @@ void control_motor(const ros::TimerEvent &)
     vel_right_motor = vel_th - vel_x * sinf(30 * DEG2RAD) + vel_y * cosf(30 * DEG2RAD);
     vel_rear_motor = vel_th + vel_x;
 
-    float kecepatan_motor_3 = vel_x * cos((DEG2RAD * 0)) + vel_y * sin((DEG2RAD * 0)) + vel_th;
-    float kecepatan_motor_2 = vel_x * cos((DEG2RAD * 120)) + vel_y * sin((DEG2RAD * 120)) + vel_th;
-    float kecepatan_motor_1 = vel_x * cos((DEG2RAD * 240)) + vel_y * sin((DEG2RAD * 240)) + vel_th;
-
-    // printf("aku: %.02f %.02f %.02f\n", vel_left_motor, vel_right_motor, vel_rear_motor);
-    // printf("mas habib: %.02f %.02f %.02f\n", kecepatan_motor_2, kecepatan_motor_1, kecepatan_motor_3);
-
     vel_left_motor *= 66.6666 * LEFT_MOTOR_GAIN;
     vel_right_motor *= 66.6666 * RIGHT_MOTOR_GAIN;
     vel_rear_motor *= 66.6666 * REAR_MOTOR_GAIN;
@@ -148,9 +141,9 @@ void control_motor(const ros::TimerEvent &)
     char cmd_mtr_right[40];
     char cmd_mtr_rear[40];
 
-    sprintf(cmd_mtr_left, "JV=%d\nBG\nKP[2]=60\nKI[2]=1000\n", (int)(vel_left_motor));
-    sprintf(cmd_mtr_right, "JV=%d\nBG\nKP[2]=60\nKI[2]=1000\n", (int)(vel_right_motor));
-    sprintf(cmd_mtr_rear, "JV=%d\nBG\nKP[2]=60\nKI[2]=1000\n", (int)(vel_rear_motor));
+    sprintf(cmd_mtr_left, "AC=3\nJV=%d\nBG\nKP[2]=60\nKI[2]=1000\n", (int)(vel_left_motor));
+    sprintf(cmd_mtr_right, "AC=3\nJV=%d\nBG\nKP[2]=60\nKI[2]=1000\n", (int)(vel_right_motor));
+    sprintf(cmd_mtr_rear, "AC=3\nJV=%d\nBG\nKP[2]=60\nKI[2]=1000\n", (int)(vel_rear_motor));
 
     RS232_cputs(rear_motor, cmd_mtr_left);
     RS232_cputs(right_motor, cmd_mtr_right);
