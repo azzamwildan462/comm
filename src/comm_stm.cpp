@@ -48,9 +48,9 @@ int main(int argc, char **argv)
 
 void CllbckPc2Stm()
 {
-    vel_x = 10;
-    vel_y = 20;
-    vel_th = 30;
+    velocity_robot[0] = 10;
+    velocity_robot[1] = 20;
+    velocity_robot[2] = 30;
     odom_offset[0] = 120;
     odom_offset[1] = 130;
     odom_offset[2] = 200;
@@ -92,9 +92,7 @@ void CllbckSend(const ros::TimerEvent &event)
     //masih eror
     //---Robot Velocity
     //=================
-    memcpy(send_buffer + 3, &vel_x, 1);
-    memcpy(send_buffer + 4, &vel_y, 1);
-    memcpy(send_buffer + 5, &vel_th, 1);
+    memcpy(send_buffer + 3, &velocity_robot, 3);
     //---Robot Position
     //=================
     // memcpy(send_buffer + 6, &odom_offset[0], 4);
@@ -117,6 +115,13 @@ void CllbckSend(const ros::TimerEvent &event)
     // memcpy(send_buffer + 11, &kicker_position, 2);
     // memcpy(send_buffer + 13, &buzzer_cnt, 1);
     // memcpy(send_buffer + 14, &buzzer_time, 1);
+
+    int8_t cekkkk;
+    memcpy(&cekkkk, send_buffer + 4, 1);
+
+    printf("cek: %d \n", cekkkk);
+
+    
 
     // UDP send
     sendto(fd, (void *)send_buffer, sizeof(send_buffer), 0, (struct sockaddr *)&dst_addr, dst_len);

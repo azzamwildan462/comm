@@ -42,9 +42,6 @@ socklen_t dst_len = sizeof(dst_addr);
  * @param [2]: vth
  */
 int8_t velocity_robot[3];
-short int vel_x;
-short int vel_y;
-short int vel_th;
 /**
  * @param [0]: x
  * @param [1]: y
