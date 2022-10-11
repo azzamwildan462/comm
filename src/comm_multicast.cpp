@@ -323,7 +323,7 @@ void recv_cllbck(const ros::TimerEvent &)
         if (identifier == 0)
         {
             comm::mc_in msg_mc_to_pc;
-            printf("BS: %s\n", recv_buf);
+            // printf("BS: %s\n", recv_buf);
             memcpy(&msg_mc_to_pc.base, recv_buf + 4, 1);
             memcpy(&msg_mc_to_pc.command, recv_buf + 5, 1);
             memcpy(&msg_mc_to_pc.style, recv_buf + 6, 1);
